@@ -1,9 +1,10 @@
-from mimetypes import init
 import torch
 import torch.nn as nn
 import torchvision.models as models
 import torch.nn.functional as F
+from torchvision.models import vgg16
 from torchsummary import summary
+from src.device import device
 
 
 class conv_bn_relu(nn.Module):
@@ -22,15 +23,16 @@ class conv_bn_relu(nn.Module):
     def forward(self, x):
         return self.net(x)
 
+
 class res_blk(nn.Module):
     def __init__(self, dim, kernel_size=3):
         super(res_blk, self).__init__()
-        self.net = nn.Sequential( 
-            nn.Conv2d(dim, dim//4, 1, 1),
-            nn.Conv2d(dim//4, dim//4, kernel_size, 1, padding=1),
-            nn.Conv2d(dim//4, dim, 1, 1, bias=False),
+        self.net = nn.Sequential(
+            nn.Conv2d(dim, dim // 4, 1, 1),
+            nn.Conv2d(dim // 4, dim // 4, kernel_size, 1, padding=1),
+            nn.Conv2d(dim // 4, dim, 1, 1, bias=False),
             nn.BatchNorm2d(dim),
-            nn.LeakyReLU(0.2) 
+            nn.LeakyReLU(0.2)
         )
         self.bn = nn.BatchNorm2d(dim)
         self.relu = nn.LeakyReLU(0.2)
@@ -107,7 +109,7 @@ class CustomSequential(nn.Sequential):
 
     def forward(self, *inputs):
         for module in self._modules.values():
-            if type(inputs) == tuple:
+            if isinstance(inputs, tuple):
                 inputs = module(*inputs)
             else:
                 inputs = module(inputs)
@@ -136,7 +138,7 @@ class context_block2d(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(self.dim // ratio, self.dim, kernel_size=1)
         )
-     
+
         self.reset_parameters()
 
     def reset_parameters(self):
@@ -174,6 +176,7 @@ class context_block2d(nn.Module):
         out = out + channel_add_term
         return out
 
+
 class UpsampleConcat(nn.Module):
     def __init__(self):
         super().__init__()
@@ -189,14 +192,14 @@ class UpsampleConcat(nn.Module):
 
 class PConvAct(nn.Module):
     def __init__(
-        self, 
-        in_ch, 
-        out_ch, 
-        kernel_size=3, 
-        stride=1, 
+        self,
+        in_ch,
+        out_ch,
+        kernel_size=3,
+        stride=1,
         padding=1,
-        bn=True, 
-        activation='relu', 
+        bn=True,
+        activation='relu',
         upcat_first=False,
         conv_bias=False,
     ):
@@ -230,3 +233,45 @@ class PConvAct(nn.Module):
 
         return out, update_mask
 
+
+class Normalization(nn.Module):
+    def __init__(self, vgg_mean, vgg_std):
+        super(Normalization, self).__init__()
+        # .view the vgg_mean and vgg_std to make them [C x 1 x 1] so that they can
+        # directly work with image Tensor of shape [B x C x H x W].
+        # B is batch size. C is number of channels. H is height and W is width.
+
+        self.vgg_mean = torch.tensor(vgg_mean).view(-1, 1, 1)
+        self.vgg_std = torch.tensor(vgg_std).view(-1, 1, 1)
+
+    def forward(self, input):
+        # normalize img
+        if self.vgg_mean.type() != input.type():
+            self.vgg_mean = self.vgg_mean.to(input)
+            self.vgg_std = self.vgg_std.to(input)
+        # output in [-1, 1] -> [0, 1] -> ([0, 1] - mean) / std
+        return ((input * + 1) * 0.5 - self.vgg_mean) / self.vgg_std
+
+
+class VGG16FeatureExtractor(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.vgg_mean = [0.485, 0.456, 0.406]
+        self.vgg_std = [0.229, 0.224, 0.225]
+        vgg = vgg16(pretrained=True).to(device)
+        normalization = Normalization(self.vgg_mean, self.vgg_std)
+        self.enc_1 = nn.Sequential(normalization, *vgg.features[:5])
+        self.enc_2 = nn.Sequential(*vgg.features[5:10])
+        self.enc_3 = nn.Sequential(*vgg.features[10:17])
+
+        # fix the encoder
+        for i in range(3):
+            for param in getattr(self, 'enc_{}'.format(i + 1)).parameters():
+                param.requires_grad = False
+
+    def forward(self, input):
+        feature_maps = [input]
+        for i in range(3):
+            feature_map = getattr(self, 'enc_{}'.format(i + 1))(feature_maps[-1])
+            feature_maps.append(feature_map)
+        return feature_maps[1:]
