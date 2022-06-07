@@ -1,5 +1,5 @@
 from PIL import Image
-import config
+from . import config
 
 
 def resize_img(img):
