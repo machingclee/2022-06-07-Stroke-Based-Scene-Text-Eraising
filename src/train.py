@@ -2,7 +2,7 @@ from matplotlib.pyplot import bar
 from src import config
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from src.dataset import ChineseDataset
+from src.dataset import SceneTextDataset
 from src.device import device
 from src.loss import get_mask_l1_loss, get_dice_loss, get_total_variation_loss, get_style_and_perceptual_loss
 from torch.optim import Adam
@@ -10,12 +10,14 @@ from src.model import InpaintGenerator
 from src.performnace import performance_check
 from src.utils import ConsoleLog
 import torch.nn as nn
+import torch
+import os
 console_log = ConsoleLog(lines_up_on_end=1)
 L1loss = nn.L1Loss()
 
 
 def train(inpaint_gen: InpaintGenerator, opt: Adam):
-    dataset = ChineseDataset()
+    dataset = SceneTextDataset()
     data_loader = DataLoader(dataset=dataset, shuffle=True, batch_size=config.batch_size)
 
     for epoch in range(config.epoches):
@@ -68,3 +70,6 @@ def train(inpaint_gen: InpaintGenerator, opt: Adam):
             if batch % (config.sample_result_per_n_images // config.batch_size) == 0:
                 img_name = f"{config.results_dir}/epoch_{epoch}_batch_{batch}.png"
                 performance_check(inpaint_gen, img_name)
+
+        state_dict = inpaint_gen.state_dict()
+        torch.save(state_dict, os.path.join(config.pths_dir, 'model_epoch_{}.pth'.format(epoch)))

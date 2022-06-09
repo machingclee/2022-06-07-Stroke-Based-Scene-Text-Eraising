@@ -8,17 +8,24 @@ import src.config as config
 import os
 
 
-class ChineseDataset(Dataset):
-    def __init__(self) -> None:
-        super(ChineseDataset, self).__init__()
-        self.bg_imgs = glob(f"{config.bg_dir}/*.png")
-        random.shuffle(self.bg_imgs)
+class SceneTextDataset(Dataset):
+    def __init__(
+        self,
+        cropped_bg_dir=config.cropped_bg_dir,
+        cropped_txt_dir=config.cropped_txt_dir,
+        cropped_txt_mask_dir=config.cropped_txt_mask_dir
+    ) -> None:
+        super(SceneTextDataset, self).__init__()
+        self.cropped_bg_img_paths = glob(f"{cropped_bg_dir}/*.png")
+        self.cropped_txt_dir = cropped_txt_dir
+        self.cropped_txt_mask_dir = cropped_txt_mask_dir
+        random.shuffle(self.cropped_bg_img_paths)
 
     def __getitem__(self, index):
-        bg_path = self.bg_imgs[index]
+        bg_path = self.cropped_bg_img_paths[index]
         basename = os.path.basename(bg_path)
-        txt_path = f"{config.txt_dir}/{basename}"
-        txt_mask_path = f"{config.txt_mask_dir}/{basename}"
+        txt_path = f"{self.cropped_txt_dir}/{basename}"
+        txt_mask_path = f"{self.cropped_txt_mask_dir}/{basename}"
 
         bg_img = Image.open(bg_path).convert("RGB")
         txt_img = Image.open(txt_path).convert("RGB")
@@ -40,7 +47,7 @@ class ChineseDataset(Dataset):
         return trans_img(txt_img), trans_img(bg_img), trans_mask(txt_mask_img)
 
     def __len__(self):
-        return len(self.bg_imgs)
+        return len(self.cropped_bg_img_paths)
 
 
 def resize_img(img):
@@ -82,7 +89,7 @@ def reverse_preprocessing(img_arr, padding_window, w, h):
 
 
 if __name__ == "__main__":
-    dataset = ChineseDataset()
+    dataset = SceneTextDataset()
     txt_img, bg_img, txt_mask = dataset[12]
 
     txt_img.show()

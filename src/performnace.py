@@ -1,5 +1,5 @@
 from src.device import device
-from src.dataset import ChineseDataset
+from src.dataset import SceneTextDataset
 from torch.utils.data import DataLoader
 from src import config
 from src.model import InpaintGenerator
@@ -9,7 +9,11 @@ import torch
 def performance_check(inpaint_gen: InpaintGenerator, save_img_path="results/test.png"):
     inpaint_gen.eval()
     with torch.no_grad(): 
-        dataset = ChineseDataset()
+        dataset = SceneTextDataset(
+            cropped_txt_mask_dir=config.test_cropped_txt_mask_dir,
+            cropped_bg_dir=config.test_cropped_bg_dir,
+            cropped_txt_dir=config.cropped_txt_dir
+        )
         data_loader = DataLoader(dataset=dataset, shuffle=True, batch_size=config.batch_size)
         txt_img, _, _ = next(iter(data_loader))
         txt_img_backup = txt_img.detach()

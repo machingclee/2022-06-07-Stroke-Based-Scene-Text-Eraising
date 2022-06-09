@@ -1,9 +1,15 @@
 input_height = 128
 input_width = 640
 
-bg_dir = "training_data/cropped_background"
-txt_dir = "training_data/cropped_text"
-txt_mask_dir = "training_data/text_mask"
+cropped_bg_dir = "training_data/cropped_background"
+cropped_txt_dir = "training_data/cropped_text"
+cropped_txt_mask_dir = "training_data/cropped_text_mask"
+
+test_cropped_bg_dir = "testing_data/cropped_background"
+test_cropped_txt_dir = "testing_data/cropped_text"
+test_cropped_txt_mask_dir = "testing_data/cropped_text_mask"
+
+pths_dir = "pths"
 
 
 epoches = 10
