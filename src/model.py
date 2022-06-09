@@ -2,10 +2,8 @@ import torch
 import torch.nn as nn
 import torchvision.models as models
 import torch.nn.functional as F
-
-from torchsummary import summary
-from src.layer import conv_bn_relu, res_blk, PartialConv2d, context_block2d, PConvAct
-from src.layer import CustomSequential
+from .layer import conv_bn_relu, res_blk, PartialConv2d, context_block2d, PConvAct
+from .layer import CustomSequential
 
 
 class SMPMEncoder(nn.Module):

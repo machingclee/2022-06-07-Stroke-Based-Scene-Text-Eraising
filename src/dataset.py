@@ -3,10 +3,17 @@ from torch.utils.data import Dataset
 from glob import glob
 from torchvision.transforms import transforms
 from PIL import Image
+from  . import config
 import random
-import src.config as config
 import os
 
+prefeed_img_transform = transforms.Compose([
+    transforms.ToTensor(),
+    transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))  # normalize from [0, 1] to [-1, 1]
+])
+prefeed_mask_transform = transforms.Compose([
+    transforms.ToTensor()
+])
 
 class SceneTextDataset(Dataset):
     def __init__(
@@ -31,20 +38,15 @@ class SceneTextDataset(Dataset):
         txt_img = Image.open(txt_path).convert("RGB")
         txt_mask_img = Image.open(txt_mask_path).convert("RGB")
 
-        bg_img = resize_and_pad_img(bg_img)
-        txt_img = resize_and_pad_img(txt_img)
-        txt_mask_img = resize_and_pad_img(txt_mask_img)
+        bg_img = preprocessing(bg_img)
+        txt_img = preprocessing(txt_img)
+        txt_mask_img = preprocessing(txt_mask_img)
 
-        trans_mask = transforms.Compose([
-            transforms.ToTensor()
-        ])
-
-        trans_img = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))  # normalize from [0, 1] to [-1, 1]
-        ])
-
-        return trans_img(txt_img), trans_img(bg_img), trans_mask(txt_mask_img)
+        return (
+            prefeed_img_transform(txt_img), 
+            prefeed_img_transform(bg_img), 
+            prefeed_mask_transform(txt_mask_img)
+        )
 
     def __len__(self):
         return len(self.cropped_bg_img_paths)
@@ -69,7 +71,7 @@ def pad_img(img):
     return new_img
 
 
-def resize_and_pad_img(img, return_window=False):
+def preprocessing(img, return_window=False):
     img, (ori_w, ori_h) = resize_img(img)
     w = img.width
     h = img.height
@@ -82,8 +84,14 @@ def resize_and_pad_img(img, return_window=False):
 
 
 def reverse_preprocessing(img_arr, padding_window, w, h):
+    """
+    img_arr is in [-1, 1]^N
+    """
+    (x, y) = padding_window
+    img_arr = (img_arr + 1)*127.5
+    img_arr = img_arr.astype("uint8")
     img = Image.fromarray(img_arr)
-    img = img.crop(padding_window)
+    img = img.crop((0, 0, x, y))
     img = img.resize((w, h))
     return img
 

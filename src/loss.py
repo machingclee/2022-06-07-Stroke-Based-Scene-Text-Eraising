@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from src.layer import VGG16FeatureExtractor
+from .layer import VGG16FeatureExtractor
 
 L1loss = nn.L1Loss()
 feature_extractor = VGG16FeatureExtractor()

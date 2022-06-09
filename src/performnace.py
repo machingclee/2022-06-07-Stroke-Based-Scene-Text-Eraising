@@ -1,8 +1,8 @@
-from src.device import device
-from src.dataset import SceneTextDataset
+from .device import device
+from .dataset import SceneTextDataset
+from .model import InpaintGenerator
+from . import config
 from torch.utils.data import DataLoader
-from src import config
-from src.model import InpaintGenerator
 from PIL import Image
 import torch
 
