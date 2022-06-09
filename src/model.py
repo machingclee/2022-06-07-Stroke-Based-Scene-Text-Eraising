@@ -164,7 +164,7 @@ class BackgroundInpaintingModule(nn.Module):
         self.dec_1_conv = CustomSequential(
             PConvAct(64, 64, 3, 1, activation="leaky"),
             PConvAct(64, 64, 3, 1, activation="leaky"),
-            PConvAct(64, 3, 3, 1, activation="leaky")
+            PConvAct(64, 3, 3, 1, activation="tanh")
         )
 
     def forward(self, img, mask_pred, SMPM_feature):
