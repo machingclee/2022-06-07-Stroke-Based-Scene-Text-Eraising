@@ -3,7 +3,7 @@ from torch.utils.data import Dataset
 from glob import glob
 from torchvision.transforms import transforms
 from PIL import Image
-from  . import config
+from . import config
 import random
 import os
 
@@ -14,6 +14,7 @@ prefeed_img_transform = transforms.Compose([
 prefeed_mask_transform = transforms.Compose([
     transforms.ToTensor()
 ])
+
 
 class SceneTextDataset(Dataset):
     def __init__(
@@ -38,13 +39,13 @@ class SceneTextDataset(Dataset):
         txt_img = Image.open(txt_path).convert("RGB")
         txt_mask_img = Image.open(txt_mask_path).convert("RGB")
 
-        bg_img = preprocessing(bg_img)
-        txt_img = preprocessing(txt_img)
-        txt_mask_img = preprocessing(txt_mask_img)
+        bg_img = resize_and_padding(bg_img)
+        txt_img = resize_and_padding(txt_img)
+        txt_mask_img = resize_and_padding(txt_mask_img)
 
         return (
-            prefeed_img_transform(txt_img), 
-            prefeed_img_transform(bg_img), 
+            prefeed_img_transform(txt_img),
+            prefeed_img_transform(bg_img),
             prefeed_mask_transform(txt_mask_img)
         )
 
@@ -60,6 +61,11 @@ def resize_img(img):
     assert h < w, "dataset should have height smaller than width"
     ratio = config.input_height / h
     new_h, new_w = int(h * ratio), int(w * ratio)
+
+    if new_w > config.input_width:
+        ratio = config.input_width / new_w
+        new_h, new_w = int(new_h * ratio), int(new_w * ratio)
+
     img = img.resize((new_w, new_h), Image.BILINEAR)
     return img, (w, h)
 
@@ -71,7 +77,7 @@ def pad_img(img):
     return new_img
 
 
-def preprocessing(img, return_window=False):
+def resize_and_padding(img, return_window=False):
     img, (ori_w, ori_h) = resize_img(img)
     w = img.width
     h = img.height
@@ -80,15 +86,16 @@ def preprocessing(img, return_window=False):
     if not return_window:
         return img
     else:
-        return img, padding_window, (ori_h, ori_w)
+        return img, padding_window, (ori_w, ori_h)
 
 
-def reverse_preprocessing(img_arr, padding_window, w, h):
+def reverse_preprocessing(img_arr, padding_window, origin_wh):
     """
     img_arr is in [-1, 1]^N
     """
     (x, y) = padding_window
-    img_arr = (img_arr + 1)*127.5
+    (w, h) = origin_wh
+    img_arr = (img_arr + 1) * 127.5
     img_arr = img_arr.astype("uint8")
     img = Image.fromarray(img_arr)
     img = img.crop((0, 0, x, y))
