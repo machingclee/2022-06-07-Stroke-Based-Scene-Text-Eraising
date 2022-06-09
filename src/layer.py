@@ -3,8 +3,7 @@ import torch.nn as nn
 import torchvision.models as models
 import torch.nn.functional as F
 from torchvision.models import vgg16
-from torchsummary import summary
-from src.device import device
+from .device import device
 
 
 class conv_bn_relu(nn.Module):
@@ -215,7 +214,7 @@ class PConvAct(nn.Module):
         if activation == 'relu':
             self.activation = nn.ReLU()
         elif activation == 'leaky':
-            self.activation = nn.LeakyReLU(0.2)
+            self.activation = nn.LeakyReLU()
         elif activation == 'tanh':
             self.activation = nn.Tanh()
 

@@ -1,8 +1,7 @@
-from sympy import beta
-from src.device import device
-from src.model import InpaintGenerator
-from src.train import train
-from src import config
+from .src.device import device
+from .src.model import InpaintGenerator
+from .src.train import train
+from .src import config
 from torch.optim import Adam
 
 

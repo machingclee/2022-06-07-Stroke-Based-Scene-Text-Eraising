@@ -2,16 +2,17 @@ from matplotlib.pyplot import bar
 from src import config
 from tqdm import tqdm
 from torch.utils.data import DataLoader
-from src.dataset import SceneTextDataset
-from src.device import device
-from src.loss import get_mask_l1_loss, get_dice_loss, get_total_variation_loss, get_style_and_perceptual_loss
+from .dataset import SceneTextDataset
+from .device import device
+from .loss import get_mask_l1_loss, get_dice_loss, get_total_variation_loss, get_style_and_perceptual_loss
 from torch.optim import Adam
-from src.model import InpaintGenerator
-from src.performnace import performance_check
-from src.utils import ConsoleLog
+from .model import InpaintGenerator
+from .performnace import performance_check
+from .utils import ConsoleLog
 import torch.nn as nn
 import torch
 import os
+
 console_log = ConsoleLog(lines_up_on_end=1)
 L1loss = nn.L1Loss()
 
