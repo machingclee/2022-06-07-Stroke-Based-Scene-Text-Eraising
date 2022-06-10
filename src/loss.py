@@ -18,12 +18,9 @@ def gram_matrix(feat):
 epsilon = 1e-8
 
 
-def get_mask_logL1_loss(mask_predict, mask_gt):
-    diff = torch.absolute(mask_predict - mask_gt)
-    # give more penality when diff in [0, 1] is not 0.
-    # when diff is close to 1, give huge penality
-    loss = -torch.sum(torch.log((1 - diff) + epsilon))
-    return loss
+def get_mask_l1_loss(mask_predict, mask_gt):
+    l1loss = L1loss(mask_predict, mask_gt)
+    return l1loss
 
 
 def get_dice_loss(mask_predict, mask_gt):
