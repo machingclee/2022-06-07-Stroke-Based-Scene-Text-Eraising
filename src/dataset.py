@@ -89,13 +89,13 @@ def resize_and_padding(img, return_window=False):
         return img, padding_window, (ori_w, ori_h)
 
 
-def reverse_preprocessing(img_arr, padding_window, origin_wh):
+def reverse_preprocessing(img_arr, padding_window, original_wh):
     """
     img_arr is in [-1, 1]^N
     """
     (x, y) = padding_window
-    (w, h) = origin_wh
-    img_arr = (img_arr + 1) * 127.5
+    (w, h) = original_wh
+    img_arr = (img_arr + 1)*127.5
     img_arr = img_arr.astype("uint8")
     img = Image.fromarray(img_arr)
     img = img.crop((0, 0, x, y))
