@@ -1,17 +1,36 @@
-from .src.device import device
-from .src.model import InpaintGenerator
-from .src.train import train
-from .src import config
+from src.device import device
+from src.model import InpaintGenerator
+from src.train import train
+from src import config
 from torch.optim import Adam
+
+import torch
 
 
 def main():
     inpaint_gen = InpaintGenerator()
+    # refactor later to get parameters from argument parser,
+    # if pth_path is provided, we consider it as re-training
+    pth_path = None
+
+    if pth_path is not None:
+        inpaint_gen.load_state_dict(torch.load(pth_path, map_location=device))
+
     inpaint_gen.to(device)
     inpaint_gen.train()
-    opt = Adam(inpaint_gen.parameters(), lr=1e-4, betas=(config.beta))
 
-    train(inpaint_gen, opt)
+    train(
+        inpaint_gen,
+        epoches=10,
+        start_epoch=1,
+        batch_size=10,
+        start_lr=1e-4,
+        last_lr=1e-5,
+        beta=(0.9, 0.999),
+        pths_dir="pths",
+        check_performance=True,
+        performance_check_dir="performance_check",
+    )
 
 
 if __name__ == "__main__":

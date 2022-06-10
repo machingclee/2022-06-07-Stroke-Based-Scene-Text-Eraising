@@ -12,17 +12,36 @@ from .utils import ConsoleLog
 import torch.nn as nn
 import torch
 import os
+import numpy as np
 
 console_log = ConsoleLog(lines_up_on_end=1)
 L1loss = nn.L1Loss()
 
 
-def train(inpaint_gen: InpaintGenerator, opt: Adam):
+def train(
+    inpaint_gen: InpaintGenerator,
+    epoches=7,
+    batch_size=10,
+    start_epoch=1,
+    performance_check_dir="performance_check",
+    start_lr=1e-4,
+    last_lr=1e-5,
+    beta=(0.9, 0.999),
+    pths_dir="pths",
+    check_performance=False
+):
     dataset = SceneTextDataset()
-    data_loader = DataLoader(dataset=dataset, shuffle=True, batch_size=config.batch_size)
+    data_loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size)
+    opt = Adam(inpaint_gen.parameters(), lr=start_lr, betas=(beta))
 
-    for epoch in range(config.epoches):
-        epoch = epoch + config.start_epoch
+    lr_decay = np.power(last_lr / start_lr, epoches)
+    lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
+        opt,
+        gamma=lr_decay
+    )
+
+    for epoch in range(epoches):
+        epoch = epoch + start_epoch
         for batch, data in enumerate(tqdm(
             data_loader, initial=1, desc=f"Epoch {epoch}",
             bar_format=config.bar_format
@@ -65,12 +84,15 @@ def train(inpaint_gen: InpaintGenerator, opt: Adam):
                 ("- pixel_loss", pixel_loss.item()),
                 ("- dice_loss", dice_loss.item()),
                 ("- tv_loss", tv_loss.item()),
-                ("- style_percep_loss", style_percep_loss.item())
+                ("- style_percep_loss", style_percep_loss.item()),
+                ("lr", lr_scheduler.get_last_lr()[0])
             ])
 
-            if batch % (config.sample_result_per_n_images // config.batch_size) == 0:
-                img_name = f"{config.results_dir}/epoch_{epoch}_batch_{batch}.png"
-                performance_check(inpaint_gen, img_name)
+            if check_performance and batch % (config.sample_result_per_n_images // batch_size) == 0:
+                check_dir = performance_check_dir
+                check_img_name = f"epoch_{epoch}_batch_{batch}.png"
+                performance_check(inpaint_gen, check_dir, check_img_name)
 
+        lr_scheduler.step()
         state_dict = inpaint_gen.state_dict()
-        torch.save(state_dict, os.path.join(config.pths_dir, 'model_epoch_{}.pth'.format(epoch)))
+        torch.save(state_dict, os.path.join(pths_dir, 'model_epoch_{}.pth'.format(epoch)))
