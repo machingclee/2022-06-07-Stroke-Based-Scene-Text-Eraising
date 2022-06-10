@@ -1,19 +1,35 @@
 from PIL import Image
+from matplotlib import image
 from torch.utils.data import Dataset
 from glob import glob
 from torchvision.transforms import transforms
 from PIL import Image
 from . import config
+import albumentations as A
 import random
 import os
+import numpy as np
 
-prefeed_img_transform = transforms.Compose([
+torch_img_transform = transforms.Compose([
     transforms.ToTensor(),
     transforms.Normalize(mean=(0.5, 0.5, 0.5), std=(0.5, 0.5, 0.5))  # normalize from [0, 1] to [-1, 1]
 ])
-prefeed_mask_transform = transforms.Compose([
+torch_mask_transform = transforms.Compose([
     transforms.ToTensor()
 ])
+
+
+albumentation_transform = A.Compose([
+    A.Perspective(pad_mode=0, pad_val=0, p=1),
+    A.Rotate(limit=20, p=0.8, border_mode=0, value=0),
+    A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.9),
+    A.OneOf([
+        A.Blur(blur_limit=3, p=0.5),
+        A.ColorJitter(p=0.5)
+    ], p=1.0)
+],
+    additional_targets={"image1": "image"}
+)
 
 
 class SceneTextDataset(Dataset):
@@ -43,14 +59,28 @@ class SceneTextDataset(Dataset):
         txt_img = resize_and_padding(txt_img)
         txt_mask_img = resize_and_padding(txt_mask_img)
 
+        bg_img = np.array(bg_img)
+        txt_img = np.array(txt_img)
+        txt_mask_img = np.array(txt_mask_img)
+
+        bg_img, txt_img, txt_mask_img = albumentation_process(bg_img, txt_img, txt_mask_img)
+
         return (
-            prefeed_img_transform(txt_img),
-            prefeed_img_transform(bg_img),
-            prefeed_mask_transform(txt_mask_img)
+            torch_img_transform(txt_img),
+            torch_img_transform(bg_img),
+            torch_mask_transform(txt_mask_img)
         )
 
     def __len__(self):
         return len(self.cropped_bg_img_paths)
+
+
+def albumentation_process(bg_img, txt_img, txt_mask_img):
+    transformsed = albumentation_transform(image=bg_img, image1=txt_img, mask=txt_mask_img)
+    bg_img = transformsed["image"]
+    txt_img = transformsed["image1"]
+    txt_mask_img = transformsed["mask"]
+    return bg_img, txt_img, txt_mask_img
 
 
 def resize_img(img):
@@ -95,7 +125,7 @@ def reverse_preprocessing(img_arr, padding_window, original_wh):
     """
     (x, y) = padding_window
     (w, h) = original_wh
-    img_arr = (img_arr + 1)*127.5
+    img_arr = (img_arr + 1) * 127.5
     img_arr = img_arr.astype("uint8")
     img = Image.fromarray(img_arr)
     img = img.crop((0, 0, x, y))

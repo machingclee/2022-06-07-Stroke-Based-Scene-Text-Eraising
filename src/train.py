@@ -4,7 +4,7 @@ from tqdm import tqdm
 from torch.utils.data import DataLoader
 from .dataset import SceneTextDataset
 from .device import device
-from .loss import get_mask_l1_loss, get_dice_loss, get_total_variation_loss, get_style_and_perceptual_loss
+from .loss import get_mask_logL1_loss, get_dice_loss, get_total_variation_loss, get_style_and_perceptual_loss
 from torch.optim import Adam
 from .model import InpaintGenerator
 from .performnace import performance_check
@@ -32,9 +32,9 @@ def train(
 ):
     dataset = SceneTextDataset()
     data_loader = DataLoader(dataset=dataset, shuffle=True, batch_size=batch_size)
+    lr_decay = np.power(last_lr / start_lr, 1 / (epoches - 1))
     opt = Adam(inpaint_gen.parameters(), lr=start_lr, betas=(beta))
 
-    lr_decay = np.power(last_lr / start_lr, epoches)
     lr_scheduler = torch.optim.lr_scheduler.ExponentialLR(
         opt,
         gamma=lr_decay
@@ -56,7 +56,7 @@ def train(
 
             bg_predict, mask_predict = inpaint_gen(txt_img)
 
-            mask_l1_loss = get_mask_l1_loss(mask_predict, txt_mask_img)
+            mask_logl1_loss = get_mask_logL1_loss(mask_predict, txt_mask_img)
             dice_loss = get_dice_loss(mask_predict, txt_mask_img)
 
             # I_comp focus on non-hole region of bg_predict
@@ -73,7 +73,7 @@ def train(
             style_percep_loss_2 = get_style_and_perceptual_loss(I_comp, bg_img)
             style_percep_loss = style_percep_loss_1 + style_percep_loss_2
 
-            loss = mask_l1_loss + dice_loss + pixel_loss + tv_loss + style_percep_loss
+            loss = mask_logl1_loss + dice_loss + pixel_loss + tv_loss + style_percep_loss
 
             opt.zero_grad()
             loss.backward()
@@ -81,6 +81,7 @@ def train(
 
             console_log.print([
                 ("loss", loss.item()),
+                ("- mask_logl1_loss", mask_logl1_loss.item()),
                 ("- pixel_loss", pixel_loss.item()),
                 ("- dice_loss", dice_loss.item()),
                 ("- tv_loss", tv_loss.item()),
@@ -92,7 +93,6 @@ def train(
                 check_dir = performance_check_dir
                 check_img_name = f"epoch_{epoch}_batch_{batch}.png"
                 performance_check(inpaint_gen, check_dir, check_img_name)
-
         lr_scheduler.step()
         state_dict = inpaint_gen.state_dict()
         torch.save(state_dict, os.path.join(pths_dir, 'model_epoch_{}.pth'.format(epoch)))
