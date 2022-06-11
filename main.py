@@ -23,13 +23,13 @@ def main():
         inpaint_gen,
         epoches=10,
         start_epoch=1,
-        batch_size=10,
+        batch_size=12,
         start_lr=1e-4,
         last_lr=1e-5,
         beta=(0.9, 0.999),
         pths_dir="pths",
         check_performance=True,
-        performance_check_dir="performance_check",
+        performance_check_dir="performance_check"
     )
 
 
