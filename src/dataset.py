@@ -20,6 +20,7 @@ torch_mask_transform = transforms.Compose([
 
 
 albumentation_transform = A.Compose([
+    A.ShiftScaleRotate(shift_limit=0, scale_limit=(0.5, 2), p=1, border_mode=0, value=0),
     A.Perspective(pad_mode=0, pad_val=0, p=1),
     A.Rotate(limit=20, p=0.8, border_mode=0, value=0),
     A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.9),
