@@ -21,11 +21,11 @@ def main():
 
     train(
         inpaint_gen,
-        epoches=10,
+        epoches=20,
         start_epoch=1,
         batch_size=12,
         start_lr=1e-4,
-        last_lr=1e-5,
+        last_lr=1e-4,
         beta=(0.9, 0.999),
         pths_dir="pths",
         check_performance=True,

@@ -18,16 +18,15 @@ torch_mask_transform = transforms.Compose([
     transforms.ToTensor()
 ])
 
-
 albumentation_transform = A.Compose([
-    A.ShiftScaleRotate(shift_limit=0, scale_limit=(0.5, 2), p=1, border_mode=0, value=0),
-    A.Perspective(pad_mode=0, pad_val=0, p=1),
-    A.Rotate(limit=20, p=0.8, border_mode=0, value=0),
+    A.ShiftScaleRotate(shift_limit=0, scale_limit=(0.5, 2), p=1),
+    A.Perspective(p=0.4),
+    A.Rotate(limit=10, p=0.8),
     A.RGBShift(r_shift_limit=25, g_shift_limit=25, b_shift_limit=25, p=0.9),
     A.OneOf([
         A.Blur(blur_limit=3, p=0.5),
         A.ColorJitter(p=0.5)
-    ], p=1.0)
+    ], p=1.0),
 ],
     additional_targets={"image1": "image"}
 )
@@ -102,10 +101,14 @@ def resize_img(img):
 
 
 def pad_img(img):
-    mode = img.mode
-    new_img = Image.new(mode=mode, size=(config.input_width, config.input_height))
-    new_img.paste(img)
-    return new_img
+    h = img.height
+    w = img.width
+    img = np.array(img)
+    img = np.pad(img, pad_width=((0, config.input_height - h), (0, config.input_width - w), (0, 0)), mode="reflect")
+    img = Image.fromarray(img)
+    assert img.height == config.input_height
+    assert img.width == config.input_width
+    return img
 
 
 def resize_and_padding(img, return_window=False):
@@ -114,6 +117,7 @@ def resize_and_padding(img, return_window=False):
     h = img.height
     padding_window = (w, h)
     img = pad_img(img)
+
     if not return_window:
         return img
     else:
