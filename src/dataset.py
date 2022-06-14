@@ -88,13 +88,16 @@ def resize_img(img):
     img:  Pillow image
     """
     h, w = img.height, img.width
-    assert h < w, "dataset should have height smaller than width"
-    ratio = config.input_height / h
-    new_h, new_w = int(h * ratio), int(w * ratio)
+    if h >= w:
+        ratio = config.input_height / h
+        new_h, new_w = int(h * ratio), int(w * ratio)
+    else:
+        ratio = config.input_height / h
+        new_h, new_w = int(h * ratio), int(w * ratio)
 
-    if new_w > config.input_width:
-        ratio = config.input_width / new_w
-        new_h, new_w = int(new_h * ratio), int(new_w * ratio)
+        if new_w > config.input_width:
+            ratio = config.input_width / new_w
+            new_h, new_w = int(new_h * ratio), int(new_w * ratio)
 
     img = img.resize((new_w, new_h), Image.BILINEAR)
     return img, (w, h)
