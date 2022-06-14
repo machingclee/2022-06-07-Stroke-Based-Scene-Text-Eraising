@@ -11,7 +11,7 @@ def main():
     inpaint_gen = InpaintGenerator()
     # refactor later to get parameters from argument parser,
     # if pth_path is provided, we consider it as re-training
-    pth_path = None
+    pth_path = "pths/model_epoch_15.pth"
 
     if pth_path is not None:
         inpaint_gen.load_state_dict(torch.load(pth_path, map_location=device))
@@ -21,8 +21,8 @@ def main():
 
     train(
         inpaint_gen,
-        epoches=20,
-        start_epoch=1,
+        epoches=4,
+        start_epoch=16,
         batch_size=12,
         start_lr=1e-4,
         last_lr=1e-4,
